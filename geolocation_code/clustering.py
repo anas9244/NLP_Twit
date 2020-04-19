@@ -31,7 +31,7 @@ def Clustering(gran, metric, n_clusters, algo, method):
     Parameters:
     gran (str): granularity, can take 'cities' or 'states'
     metric (str): can take 'burrows_delta', 'jsd', 'tfidf' or 'norm'
-    n_clusters (int): number of clustering_results
+    n_clusters (int): number of clusters
     algo (str): algorithim to use, can take 'hrchy' for hirarihcal and 'kmed' for KMedoids
     method: linkage method. will be ignored if algo='kmed'
 
