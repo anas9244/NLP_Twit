@@ -1,0 +1,9 @@
+*.json
+*.jsonl
+*.pickle
+*.csv
+US.txt
+*.ndjson
+*.zip
+*.tar.gz
+*.tsv
