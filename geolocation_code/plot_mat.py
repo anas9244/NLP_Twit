@@ -126,9 +126,9 @@ def Plot_Mat(gran, metric, sort, show_lables, method='ward'):
     if not os.path.exists(gran_path + "/dist_mats/"):
         raise Exception(
             "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
-    # elif len(os.listdir(gran_path + "/dist_mats/")) < 5:
-    #     raise Exception(
-    #         "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
+    elif len(os.listdir(gran_path + "/dist_mats/")) < 5:
+        raise Exception(
+            "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
 
     labels_file = open(gran_path + "/labels.pickle", "rb")
     labels = pickle.load(labels_file)
