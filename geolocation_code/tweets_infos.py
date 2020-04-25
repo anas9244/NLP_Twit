@@ -70,7 +70,7 @@ def subset(tweet):
     return tweet['place']['full_name']
 
 
-def Save_Info(gran):
+def save_info(gran):
     """ Store more information about the selected dataset for clustering """
     if gran not in {"states", "cities"}:
         raise ValueError(
@@ -135,4 +135,4 @@ def Save_Info(gran):
 
 
 if __name__ == "__main__":
-    Save_Info('cities')
+    save_info('cities')

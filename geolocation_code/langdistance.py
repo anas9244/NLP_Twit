@@ -107,7 +107,7 @@ def _translate(value, leftMin, leftMax):
 
 
 #-- Main functions --#
-def Resample(gran, dataset):
+def resample(gran, dataset):
     """ Generates samples given granularity and dataset. A pickle for each iteration """
     if gran not in {"states", "cities"}:
         raise ValueError(
@@ -170,18 +170,18 @@ def Resample(gran, dataset):
         pickle.dump(subsets_words, save_resampling_iter, -1)
 
 
-def Burrows_delta(gran):
-    """ Generates burrows_delta matrix given a granularity and store in a pickle file, This must be run after Resample() """
+def burrows_delta(gran):
+    """ Generates burrows_delta matrix given a granularity and store in a pickle file, This must be run after resample() """
     if gran not in {"states", "cities"}:
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
     resample_path = "data/" + gran + "/resampling"
     if not os.path.exists(resample_path):
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     elif len(os.listdir(resample_path)) == 0:
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     else:
         print("Starting Burrows_delta...")
         iter_results = []
@@ -249,17 +249,17 @@ def Burrows_delta(gran):
 
 
 def JSD(gran):
-    """ Generates JSD matrix given a granularity and store in a pickle file, This must be run after Resample() """
+    """ Generates JSD matrix given a granularity and store in a pickle file, This must be run after resample() """
     if gran not in {"states", "cities"}:
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
     resample_path = "data/" + gran + "/resampling"
     if not os.path.exists(resample_path):
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     elif len(os.listdir(resample_path)) == 0:
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     else:
         print("Starting JSD...")
         iter_results = []
@@ -306,17 +306,17 @@ def JSD(gran):
 
 
 def TF_IDF(gran):
-    """ Generates a TF-IDF matrix given a granularity and store in a pickle file, This must be run after Resample() """
+    """ Generates a TF-IDF matrix given a granularity and store in a pickle file, This must be run after resample() """
     if gran not in {"states", "cities"}:
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
     resample_path = "data/" + gran + "/resampling"
     if not os.path.exists(resample_path):
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     elif len(os.listdir(resample_path)) == 0:
         raise Exception(
-            "No resampling data found! Please run Resample() first.")
+            "No resampling data found! Please run resample() first.")
     else:
         print("Starting TF_IDF...")
         iter_results = []
@@ -344,7 +344,7 @@ def TF_IDF(gran):
         _save_results(gran, iter_results, "tfidf")
 
 
-def Norm_mat(gran):
+def norm_mat(gran):
     """ Combines the matrices generated from burrows_delta, JSD and TF-IDF by calculating the norm matrix of the 3 """
     if gran not in {"states", "cities"}:
         raise ValueError(
@@ -353,10 +353,10 @@ def Norm_mat(gran):
     dist_path = "data/" + gran + "/dist_mats"
     if not os.path.exists(dist_path):
         raise Exception(
-            "Missing distance matrices data! Please run Burrows_delta(), JSD(), and TF_IDF() first.")
+            "Missing distance matrices data! Please run burrows_delta(), JSD(), and TF_IDF() first.")
     elif len(os.listdir(dist_path)) < 4:
         raise Exception(
-            "Missing distance matrices data! Please run Burrows_delta(), JSD(), and TF_IDF() first.")
+            "Missing distance matrices data! Please run burrows_delta(), JSD(), and TF_IDF() first.")
 
     print("Starting matrices combination...")
 

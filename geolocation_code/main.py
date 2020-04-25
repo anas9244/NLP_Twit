@@ -2,10 +2,10 @@ import pickle
 import os
 import matplotlib.pyplot as plt
 #--- Custom modules ---#
-from build_data import Build_data
-from langdistance import Resample, Burrows_delta, JSD, TF_IDF, Norm_mat
-from plot_mat import Plot_Mat
-from clustering import Clustering
+from build_data import build_data
+from langdistance import resample, burrows_delta, JSD, TF_IDF, norm_mat
+from plot_mat import plot_mat
+from clustering import clustering
 
 
 # Path to a folder containing json file/s of tweets where each line is a tweet object
@@ -16,7 +16,7 @@ def _get_dataset(gran):
     if gran not in {"states", "cities"}:
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
-    data_path = "data02/" + gran
+    data_path = "data/" + gran
     if not os.path.exists(data_path):
         raise Exception("Missing dataset data for " + gran +
                         "! Please run build_data() first.")
@@ -31,7 +31,7 @@ def _get_dataset(gran):
     return dataset
 
 
-def Plot_Subset_Freq(gran):
+def plot_subset_freq(gran):
     """ Plots the distribution of given dataset, i.e. number of tweets per subset """
     if gran not in {"states", "cities"}:
         raise ValueError(
@@ -54,15 +54,15 @@ def Plot_Subset_Freq(gran):
     plt.show()
 
 
-def CREATS_MATS(gran):
+def create_mats(gran):
     """  Resamples the dataset and creates distance matrices as per multiple metrics. Then generate the norm matrix of all metrics """
 
     dataset = _get_dataset(gran)
-    Resample(gran, dataset)
-    # Burrows_delta(gran)
+    resample(gran, dataset)
+    # burrows_delta(gran)
     # JSD(gran)
-    TF_IDF(gran)
-    Norm_mat(gran)
+    # TF_IDF(gran)
+    # norm_mat(gran)
 
 
 if __name__ == "__main__":
@@ -71,19 +71,19 @@ if __name__ == "__main__":
     # Recommneded maxsubset for gran='states' to be >1000000 for better representation
     # Recommneded minsubset for gran='cities' to be >5000 since less will create very few common word types accros subsets
 
-    # Build_data(raw_data_path=RAW_PATH, gran="states",
+    # build_data(raw_data_path=RAW_PATH, gran="states",
                # minsubset=5000, maxsubset=2000000)
 
-    # Plot_Subset_Freq('states')
+    # plot_subset_freq('states')
 
-    # CREATS_MATS('states')
+    #create_mats('states')
 
     #dataset = _get_dataset('cities')
 
     #print (sum([len(dataset[subset]) for subset in dataset]))
 
-    #----------- Uncomment the following block and comment out CREATS_MATS() and Build_data() if you want to repeat running for different args --------------#
+    #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 
-    Plot_Mat(gran='cities', metric='norm', sort='lang',
-             show_lables=False, method='ward')
-    #Clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")
+    plot_mat(gran='states', metric='norm', sort='lang',
+    show_lables=True, method='ward')
+    #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")

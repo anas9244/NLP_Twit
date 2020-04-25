@@ -2,11 +2,13 @@ import ujson as json
 import build_data as d
 import os
 
-RAW_PATH = "/media/data/twitter_geolocation/tweets_clean/"
+old_files = d._get_files("/media/data/new_tweets/")
+new_files = d._get_files("/media/data/twitter_geolocation/json/")
+combined_files = old_files + new_files
 
 
 def _set_file(file_index):
-    path = "/media/data/twitter_geolocation/"
+    path = "/media/data/"
     full_path = path + "/json_combined/"
 
     if not os.path.exists(full_path):
@@ -16,26 +18,35 @@ def _set_file(file_index):
     return file
 
 
-file_index = 0
+file_index = 76
 file_out = _set_file(file_index)
-files = [file for file in d._get_files(RAW_PATH)]
+files = [file for file in new_files]
 
 tweets_count = 0
+
+# ids=set()
 for file in files:
     opened_file = open(file, 'r', encoding="utf-8")
     print(file)
-    for line in opened_file:
-        tweet = json.loads(line)
-        tweets_count += 1
-        if tweets_count % 1000000 == 0:
-            print(tweets_count)
-            json.dump(tweet, file_out, ensure_ascii=False)
-            file_out.close()
-            file_index += 1
-            file_out = _set_file(file_index)
-        else:
-            json.dump(tweet, file_out, ensure_ascii=False)
-            file_out.write('\n')
+    ids = set()
+    for index, line in enumerate(opened_file):
+        try:
+            tweet = json.loads(line)
+            if tweet['id'] not in ids:
+                ids.add(tweet['id'])
+                tweets_count += 1
+                if tweets_count % 100000 == 0:
+                    print(tweets_count)
+                    json.dump(tweet, file_out, ensure_ascii=False)
+                    file_out.close()
+                    file_index += 1
+                    file_out = _set_file(file_index)
+                else:
+                    json.dump(tweet, file_out, ensure_ascii=False)
+                    file_out.write('\n')
+        except:
+            # pass
+            print(index)
 
     # print(len(tweets))
     # if len(tweets) % 1000000 == 0:

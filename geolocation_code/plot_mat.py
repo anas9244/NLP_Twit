@@ -100,7 +100,7 @@ def _show_mat(gran, measure, mat, lables, sort, method, show_lables):
     plt.show()
 
 
-def Plot_Mat(gran, metric, sort, show_lables, method='ward'):
+def plot_mat(gran, metric, sort, show_lables, method='ward'):
     """  Shows the distance matrix given granularity, metric and method with the ability to sort alphabetically, by language or geographic distance.
 
     Parameters:
@@ -150,4 +150,4 @@ def Plot_Mat(gran, metric, sort, show_lables, method='ward'):
 # if __name__ == "__main__":
 #     # Possible values for metric are ('burrows_delta', 'jsd', 'tfidf', 'norm')
 #     # Possible values for sort are ('alpha', 'geo', 'lang')
-#     Plot_Mat(gran='states', metric='norm', sort='alpha', show_lables=False, method='ward')
+#     plot_mat(gran='states', metric='norm', sort='alpha', show_lables=False, method='ward')

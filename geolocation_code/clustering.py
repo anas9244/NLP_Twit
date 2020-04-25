@@ -25,7 +25,7 @@ def _plot_clusters_freq(clustering,method):
 
 
 #######################################
-def Clustering(gran, metric, n_clusters, algo, method):
+def clustering(gran, metric, n_clusters, algo, method):
     """ Generates clustering data and store in json format.
 
     Parameters:

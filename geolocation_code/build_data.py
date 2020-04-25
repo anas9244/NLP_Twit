@@ -33,8 +33,8 @@ source_whitelist = [
 
 
 # Creates main data folder to hold all the clustering resources
-if not os.path.exists('data02'):
-    os.mkdir('data02')
+if not os.path.exists('data'):
+    os.mkdir('data')
 
 
 def _prepend(files, dir_path):
@@ -48,7 +48,7 @@ def _get_files(dirr):
     """ Generates a list of files in a given directory with full paths """
     files = os.listdir(path=dirr)
     files_paths = _prepend(files, dirr)
-    files_paths.sort(key=os.path.basename)
+    files_paths.sort(key=os.path.getmtime)
     return(files_paths)
 
 
@@ -83,19 +83,23 @@ def _clean_text(tweet):
     if 'norm_tweet' in tweet:
         return tweet['norm_tweet']
     else:
-
+        
         text = ""
         if tweet['truncated']:
-            text = tweet['extended_tweet']['full_text']
+            if "extended_tweet" in tweet:
+                text = tweet['extended_tweet']['full_text']
+            else:
+                return False
         else:
             text = tweet['text']
 
         clean_text = _clean_string(text)
 
-        if len(clean_text) > 5:
-            return clean_text
-        else:
-            return False
+        #if len(clean_text) > 5:
+        return clean_text
+
+        #else:
+        #    return False
 
 
 def _get_center(coords):
@@ -154,7 +158,7 @@ def _extract_state(tweet):
                 return False
 
 
-def Build_data(raw_data_path, gran, minsubset, maxsubset):
+def build_data(raw_data_path, gran, minsubset, maxsubset):
     """ Generates dataset dictionary given a state/city granularity, and given the min and max number of tweets any subset should have. The subsets are keys and the list of tweets are the values.
     + generates lables pickle file for subsets for plotting
     + generates geographic distance matrix pickle file for plotting
@@ -248,9 +252,9 @@ def Build_data(raw_data_path, gran, minsubset, maxsubset):
 
     print("saving files....")
 
-    data_path = "data02/" + gran
-    if not os.path.exists("data02/" + gran):
-        os.mkdir("data02/" + gran)
+    data_path = "data/" + gran
+    if not os.path.exists("data/" + gran):
+        os.mkdir("data/" + gran)
 
     mat_path = data_path + "/dist_mats"
     if not os.path.exists(mat_path):

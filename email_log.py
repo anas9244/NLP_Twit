@@ -54,7 +54,7 @@ import smtplib
 import string
 import time
 
-
+path="nohup.out"
 def follow(thefile):
     thefile.seek(0, 2)
     while True:
@@ -66,7 +66,7 @@ def follow(thefile):
             return line
 
 
-logfile = open("nohup.out", "r", encoding="utf-8")
+logfile = open(path, "r", encoding="utf-8")
 
 error = follow(logfile)
 
@@ -88,15 +88,15 @@ def sendemail(from_addr, to_addr_list,
     return problems
 
 
-change_date = os.stat("nohup.out")[8]
+change_date = os.stat(path)[8]
 while True:
     #change_date = os.stat(logfile)[8]
 
-    if change_date != os.stat("nohup.out")[8]:
+    if change_date != os.stat(path)[8]:
         print("changed, sent email")
 
-        change_date = os.stat("nohup.out")[8]
-        with open("nohup.out") as hupfile:
+        change_date = os.stat(path)[8]
+        with open(path) as hupfile:
             content = hupfile.read().replace('\n', ' ')
 
     # if error:
