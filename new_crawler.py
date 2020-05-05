@@ -106,7 +106,7 @@ class TwitterListener(tweepy.StreamListener):
                     # increment filename for next 100K tweets
                     self.file_index += 1
                     self.file = set_file(self.file_index)
-                    print(self.num_tweets)
+                    #print(self.num_tweets)
                     sys.stdout.flush()
 
                 # elif self.num_tweets <= 1000000:
@@ -147,8 +147,8 @@ twitterStream = tweepy.Stream(auth, listener)
 
 
 try:
-    twitterStream.filter(locations=[-124, 25, -66, 49, -168, 54, -141, 71, -163, 16, -151, 23],
-                         # twitterStream.filter(locations=[-180, -80, 180, 80],
+    twitterStream.filter(locations=[-180, -80, 180, 80],
+#locations=[-124, 25, -66, 49, -168, 54, -141, 71, -163, 16, -151, 23],
                          languages=['en'], stall_warnings=True)
 except Exception as ex:
     pass

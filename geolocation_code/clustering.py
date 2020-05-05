@@ -8,8 +8,8 @@ import numpy as np
 import os
 
 
-def _plot_clusters_freq(clustering,method):
-
+def _plot_clusters_freq(clustering, method):
+    # correct the cluster lables range because KMedoids includes 0 in labling, but not hierarchal
     corr = 0 if 0 in list(clustering) else 1
     # for i in range(corr, len(set(clustering)) + corr):
     #     print(i, list(clustering).count(i))
@@ -25,7 +25,7 @@ def _plot_clusters_freq(clustering,method):
 
 
 #######################################
-def clustering(gran, metric, n_clusters, algo, method):
+def clustering(gran, metric, n_clusters, algo, method='ward'):
     """ Generates clustering data and store in json format.
 
     Parameters:
@@ -38,33 +38,42 @@ def clustering(gran, metric, n_clusters, algo, method):
     """
 
     if gran not in {"states", "cities"}:
-        raise ValueError("'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
+        raise ValueError(
+            "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
     if metric not in {'burrows_delta', 'jsd', 'tfidf', 'norm'}:
-        raise ValueError("'" + metric + "'" + " is invalid. Possible values are ('burrows_delta', 'jsd', 'tfidf', 'norm')")
+        raise ValueError(
+            "'" + metric + "'" + " is invalid. Possible values are ('burrows_delta', 'jsd', 'tfidf', 'norm')")
     if algo not in {'hrchy', 'kmed'}:
-        raise ValueError("'" + algo + "'" + " is invalid. Possible values are ('hrchy', 'kmed')")
+        raise ValueError("'" + algo + "'" +
+                         " is invalid. Possible values are ('hrchy', 'kmed')")
 
     gran_path = "data/" + gran
 
     if not os.path.exists(gran_path + "/dist_mats/"):
-        raise Exception("Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
+        raise Exception(
+            "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
     elif len(os.listdir(gran_path + "/dist_mats/")) < 5:
-        raise Exception("Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
+        raise Exception(
+            "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
 
-    dist_mat_file = open(gran_path + "/dist_mats/" + metric + "_dist_mat.pickle", "rb")
+    dist_mat_file = open(gran_path + "/dist_mats/" +
+                         metric + "_dist_mat.pickle", "rb")
     dist_mat = pickle.load(dist_mat_file)
 
     subset_names_file = open(gran_path + "/labels.pickle", "rb")
     subset_names = pickle.load(subset_names_file)
 
     if algo == 'hrchy':
-        linkage_result = linkage(sp.distance.squareform(dist_mat), method=method)
-        clustering = fcluster(linkage_result, t=n_clusters, criterion='maxclust')
+        linkage_result = linkage(
+            sp.distance.squareform(dist_mat), method=method)
+        clustering = fcluster(
+            linkage_result, t=n_clusters, criterion='maxclust')
 
     elif algo == 'kmed':
-        clustering = KMedoids(n_clusters=n_clusters, metric='precomputed').fit_predict(dist_mat)
+        clustering = KMedoids(n_clusters=n_clusters,
+                              metric='precomputed').fit_predict(dist_mat)
 
-    _plot_clusters_freq(clustering,method)
+    _plot_clusters_freq(clustering, method)
 
     clust_path = gran_path + "/clustering_results/"
     if not os.path.exists(clust_path):
@@ -83,7 +92,8 @@ def clustering(gran, metric, n_clusters, algo, method):
         cities_ids_file = open(gran_path + "/city_ids.pickle", "rb")
         cities_ids = pickle.load(cities_ids_file)
         for index, c in enumerate(clustering):
-            record = {'city_id': cities_ids[index], "city_name": subset_names[index], 'cluster': int(c)}
+            record = {
+                'city_id': cities_ids[index], "city_name": subset_names[index], 'cluster': int(c)}
             json.dump(record, file_out, ensure_ascii=False)
             file_out.write("\n")
 

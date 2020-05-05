@@ -31,6 +31,8 @@ def _hrchy_sort(gran, sort_by, dist_mat, lables, method, show_lables):
         linkage = hc.linkage(sp.distance.squareform(geo_mat), method=method)
 
     dendo = dendrogram(linkage, labels=lables)
+    print(len(lables))
+    print(len(dist_mat))
     if not show_lables:
         plt.axis('off')
     leaves = dendo['leaves']
@@ -39,6 +41,8 @@ def _hrchy_sort(gran, sort_by, dist_mat, lables, method, show_lables):
     for i in leaves:
         sorted_lables.append(lables[i])
     sorted_mat = np.empty(dist_mat.shape)
+
+    test = 1
 
     # For highliting
     target_names = ['Lewisville, TX', 'Santa Clarita, CA',
@@ -136,6 +140,8 @@ def plot_mat(gran, metric, sort, show_lables, method='ward'):
     dist_mat_file = open(gran_path + "/dist_mats/" +
                          metric + "_dist_mat.pickle", "rb")
     dist_mat = pickle.load(dist_mat_file)
+
+    print(dist_mat.mean())
 
     if sort == 'alpha':
         sorted_labels, sorted_mat = _alpha_sort(labels, dist_mat)
