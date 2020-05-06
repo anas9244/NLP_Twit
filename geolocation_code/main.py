@@ -9,7 +9,7 @@ from clustering import clustering
 
 
 # Path to a folder containing json file/s of tweets where each line is a tweet object
-RAW_PATH = "/media/data/twitter_geolocation/json/"
+RAW_PATH = "/media/data/twitter_geolocation/clean_tweets/"
 
 
 def _get_dataset(gran):
@@ -59,10 +59,10 @@ def create_mats(gran):
 
     dataset = _get_dataset(gran)
     resample(gran, dataset)
-    # burrows_delta(gran)
-    # JSD(gran)
-    # TF_IDF(gran)
-    # norm_mat(gran)
+    burrows_delta(gran)
+    JSD(gran)
+    TF_IDF(gran)
+    norm_mat(gran)
 
 
 if __name__ == "__main__":
@@ -76,14 +76,15 @@ if __name__ == "__main__":
 
     # plot_subset_freq('states')
 
-    # create_mats('states')
+    #create_mats('states')
 
-    #dataset = _get_dataset('cities')
+    dataset = _get_dataset('cities')
 
     #print (sum([len(dataset[subset]) for subset in dataset]))
 
     #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 
+
     plot_mat(gran='states', metric='norm', sort='lang',
-             show_lables=True, method='ward')
+    show_lables=True, method='ward')
     #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")

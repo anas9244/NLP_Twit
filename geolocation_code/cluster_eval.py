@@ -7,8 +7,10 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 import matplotlib
 from sklearn.metrics import silhouette_score
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from scipy.stats import entropy
 matplotlib.use('GTK3Agg')
-
+import random
 # ToDo
 # avr dissimilarity
 # median dissimilarity, HOW?
@@ -45,6 +47,18 @@ def _cluster_lables(dist_mat, n_clusters, algo, method):
                               metric='precomputed').fit_predict(dist_mat)
 
     return clustering
+
+
+def _get_lang_model(sample):
+    """ Generates a directory of word occurrences for subsets in a given sample """
+    word_vec = {}
+    for tweet in sample:
+        for word in tweet.split():
+            if word not in word_vec:
+                word_vec[word] = 1
+            else:
+                word_vec[word] += 1
+    return word_vec
 
 
 def average_median_dissimilarity(gran, eval_metric, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
@@ -129,14 +143,119 @@ def dunn(gran, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
     ax.xaxis.grid(True)
     plt.show()
 
+def _resample_clusters(clusters_tweets):
 
+    resample_results = []
+    min_cluster = min([len(cluster) for cluster in clusters_tweets])
+    max_cluster = max([len(cluster) for cluster in clusters_tweets])
+    iters = int(round(max_cluster / min_cluster, 0))
+    print("iterations: ", iters)
+    for i in range(1, iters + 1):
+
+        print(i, "iter")
+        sample_mean_perplexity = 0
+        for cluster in clusters_tweets:
+            start_index = random.randint(0, len(cluster) - min_cluster)
+            end_index = start_index + min_cluster
+            sample_tweets = cluster[start_index:end_index]
+            sample_corpus = " ".join(sample_tweets)
+            count_vectorizer = CountVectorizer(preprocessor=lambda x: x)
+            tf_vectorizer = TfidfTransformer(use_idf=False, norm="l1")
+
+            X = count_vectorizer.fit_transform([sample_corpus])
+            X_tf = tf_vectorizer.fit_transform(X)
+
+            ent = entropy(X_tf.toarray()[0], base=2)
+            sample_perplexity = 2**ent
+            sample_mean_perplexity += sample_perplexity
+
+        sample_mean_perplexity /= len(clusters_tweets)
+
+        resample_results.append(sample_mean_perplexity)
+    print("Overall perplexity: ", sum(resample_results) / len(resample_results))
+
+    return sum(resample_results) / len(resample_results)
+
+
+def perplexity(gran, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
+    dist_mat = _get_dist_mat(gran, metric, distance_type)
+    results = []
+
+    gran_path = "data/" + gran
+    dataset_file = open(gran_path + "/dataset.pickle", "rb")
+    dataset = pickle.load(dataset_file)
+    keys = list(dataset.keys())
+
+    for n in range(nMin, nMax):
+        print("###################")
+        print("cluster size: ", n)
+        print("####################")
+        labels = _cluster_lables(dist_mat, n, algo, method)
+        # joined_lists=[]
+        clusters_tweets = []
+        for i in set(labels):
+            points_indices_i = [p for p, x in enumerate(labels) if x == i]
+            cluster_tweets = [
+                tweet for p in points_indices_i for tweet in dataset[keys[p]]]
+            clusters_tweets.append(cluster_tweets)
+            # # joined_lists= [" ".join(dataset[keys[p]]) for p in points_indices_i]
+            # #print(len(cluster_tweets))
+            # corpus = " ".join(cluster_tweets)
+
+            # # print("finished joining", keys)
+            # count_vectorizer = CountVectorizer(
+            #     preprocessor=lambda x: x)
+            # tf_vectorizer = TfidfTransformer(use_idf=False, norm="l1")
+
+            # X = count_vectorizer.fit_transform([corpus])
+            # X_tf = tf_vectorizer.fit_transform(X)
+            # ent = entropy(X_tf.toarray()[0], base=2)
+            # print(i," , ",len(cluster_tweets), 2**ent)
+
+        results.append(_resample_clusters(clusters_tweets))
+
+    ax = plt.axes()
+    x = range(nMin, nMax)
+    ax.plot(x, results)
+    plt.xticks(range(nMin, nMax + 1))
+    ax.xaxis.grid(True)
+    plt.show()
+
+# 1699.0051465005286
 # average_median_dissimilarity(gran='cities', eval_metric='mean',
 #                              nMin=2, nMax=16, metric='norm', algo='kmed', distance_type='lang')
 
 
-# silhouette(gran='cities', nMin=2, nMax=20, metric='norm',
-#            algo='kmed', distance_type='lang')
+silhouette(gran='cities', nMin=2, nMax=20, metric='norm',
+            algo='kmed', distance_type='lang')
 
 
-dunn(gran='cities', nMin=2, nMax=50, metric='norm',
-     algo='kmed', distance_type='lang')
+# dunn(gran='cities', nMin=2, nMax=50, metric='norm',
+#      algo='kmed', distance_type='lang')
+
+#perplexity(gran='cities', nMin=2, nMax=20, metric='norm',
+#           algo='kmed', distance_type='lang')
+# from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+# from scipy.stats import entropy
+# import pickle
+
+# gran_path = "data/states"
+# dataset_file = open(gran_path + "/dataset.pickle", "rb")
+# dataset = pickle.load(dataset_file)
+# print("finished loading data")
+# key = list(dataset.keys())[2]
+# corpus = " ".join(dataset[key])
+
+
+# print("finished joining", key)
+# # vectorizer = HashingVectorizer(
+# #     preprocessor=_clean_string, alternate_sign=False, n_features=9, norm=None)
+# count_vectorizer = CountVectorizer(
+#     preprocessor=lambda x: x)
+# tf_vectorizer = TfidfTransformer(use_idf=False, norm="l1")
+
+# X = count_vectorizer.fit_transform([corpus])
+# X_tf = tf_vectorizer.fit_transform(X)
+# ent = entropy(X_tf.toarray()[0], base=2)
+# print(2**ent)
+# # # 1:2.251629167387823
