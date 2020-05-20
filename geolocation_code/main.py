@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 #--- Custom modules ---#
 from build_data import build_data
-from langdistance import resample, burrows_delta, JSD, TF_IDF, norm_mat
+from langdistance02 import resample, burrows_delta, JSD  # , TF_IDF, norm_mat
 from plot_mat import plot_mat
 from clustering import clustering
 
@@ -58,11 +58,12 @@ def create_mats(gran):
     """  Resamples the dataset and creates distance matrices as per multiple metrics. Then generate the norm matrix of all metrics """
 
     dataset = _get_dataset(gran)
+    print(len(dataset))
     resample(gran, dataset)
-    burrows_delta(gran)
-    JSD(gran)
-    TF_IDF(gran)
-    norm_mat(gran)
+    # burrows_delta(gran)
+    # JSD(gran)
+    # TF_IDF(gran)
+    # norm_mat(gran)
 
 
 if __name__ == "__main__":
@@ -76,15 +77,12 @@ if __name__ == "__main__":
 
     # plot_subset_freq('states')
 
-    #create_mats('states')
-
-    dataset = _get_dataset('cities')
+    create_mats('cities')
 
     #print (sum([len(dataset[subset]) for subset in dataset]))
 
     #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 
-
-    plot_mat(gran='states', metric='norm', sort='lang',
-    show_lables=True, method='ward')
-    #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")
+    # plot_mat(gran='cities', metric='burrows_delta', sort='lang',
+    #          show_lables=True, method='ward')
+    # #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")

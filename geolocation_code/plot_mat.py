@@ -60,13 +60,13 @@ def _hrchy_sort(gran, sort_by, dist_mat, lables, method, show_lables):
 
     for i in range(len(leaves)):
         for j in range(len(leaves)):
-            # if i in target_ind:
-            #     sorted_mat[i][j] = 1.8
-            # elif j in target_ind:
-            #     sorted_mat[i][j] = 1.8
-            # else:
+            if i in target_ind:
+                sorted_mat[i][j] = 3
+            elif j in target_ind:
+                sorted_mat[i][j] = 3
+            else:
 
-            sorted_mat[i][j] = dist_mat[leaves[i]][leaves[j]]
+                sorted_mat[i][j] = dist_mat[leaves[i]][leaves[j]]
     return sorted_lables, sorted_mat
 
 
@@ -125,14 +125,14 @@ def plot_mat(gran, metric, sort, show_lables, method='ward'):
         raise ValueError(
             "'" + sort + "'" + " is invalid. Possible values are ('alpha', 'geo', 'lang')")
 
-    gran_path = "data/" + gran
+    gran_path = "data_test/" + gran
 
-    if not os.path.exists(gran_path + "/dist_mats/"):
-        raise Exception(
-            "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
-    elif len(os.listdir(gran_path + "/dist_mats/")) < 5:
-        raise Exception(
-            "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
+    # if not os.path.exists(gran_path + "/dist_mats/"):
+    #     raise Exception(
+    #         "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
+    # elif len(os.listdir(gran_path + "/dist_mats/")) < 5:
+    #     raise Exception(
+    #         "Missing distance matrices data! Please run Burrows_delta(), JSD(), TF_IDF() and  Norm_mat() first.")
 
     labels_file = open(gran_path + "/labels.pickle", "rb")
     labels = pickle.load(labels_file)

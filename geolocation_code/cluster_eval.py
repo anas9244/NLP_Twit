@@ -3,14 +3,21 @@ from sklearn_extra.cluster import KMedoids
 import scipy.spatial as sp
 from scipy.cluster.hierarchy import fcluster, linkage
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import plot, ion
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 import matplotlib
+import matplotlib.ticker
 from sklearn.metrics import silhouette_score
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.cluster import DBSCAN
 from scipy.stats import entropy
-matplotlib.use('GTK3Agg')
+import time
 import random
+from collections import Counter
+matplotlib.use('GTK3Agg')
+
+
 # ToDo
 # avr dissimilarity
 # median dissimilarity, HOW?
@@ -26,6 +33,7 @@ def _get_dist_mat(gran, metric, distance_type):
     gran_path = "data/" + gran
 
     if distance_type == 'lang':
+
         dist_mat_file = open(gran_path + "/dist_mats/" +
                              metric + "_dist_mat.pickle", "rb")
         dist_mat = pickle.load(dist_mat_file)
@@ -45,6 +53,9 @@ def _cluster_lables(dist_mat, n_clusters, algo, method):
     elif algo == 'kmed':
         clustering = KMedoids(n_clusters=n_clusters,
                               metric='precomputed').fit_predict(dist_mat)
+    elif algo == "dbs":
+        clustering = DBSCAN(n_clusters=n_clusters,
+                              metric='precomputed').fit_predict(dist_mat)
 
     return clustering
 
@@ -59,6 +70,45 @@ def _get_lang_model(sample):
             else:
                 word_vec[word] += 1
     return word_vec
+
+
+# , subsets_per_cluster_means
+def plot_eval(eval_metric, gran, algo, distance_type, method, nMin, nMax, results, subsets_per_cluster_means):
+    # ion()
+    fig, ax1 = plt.subplots(figsize=(18.0, 10.0))  #
+    x = range(nMin, nMax)
+    color = 'tab:blue'
+    ax1.set_xlabel('num of clusters')
+    ax1.set_ylabel('mean num. of subsets per cluster', color=color)
+    ax1.plot(x, subsets_per_cluster_means, color=color, linewidth=1)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()
+    color = 'tab:red'
+    ax2.set_ylabel(eval_metric + " value", color=color)
+    ax2.plot(x, results,
+             color=color, linewidth=2)
+    ax2.tick_params(axis='y', labelcolor=color)
+    fig.tight_layout()
+
+    ax1.xaxis.grid(True)
+    ax1.set_xticklabels(range(nMin, nMax), rotation=45, fontsize=10)
+    plt.xticks(range(nMin, nMax), rotation=45)
+
+    title = str(eval_metric) + "_" + str(gran) + "_" + \
+        str(algo) + "_" + str(distance_type) + "_" + str(method)
+    plt.title(title)
+    plt.show()
+    #plt.savefig(title + "_2", dpi=800, bbox_inches="tight")
+
+    #ax = plt.axes()
+
+    #ax.plot(x, results)
+    # plt.xticks(range(nMin, nMax + 1))
+    # ax.xaxis.grid(True)
+    # plt.title(str(eval_metric) + ", " + str(gran) + ", " + str(algo) + ", " +
+    #           str(distance_type) + ", " + str(method))
+    # plt.show()
 
 
 def average_median_dissimilarity(gran, eval_metric, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
@@ -82,66 +132,69 @@ def average_median_dissimilarity(gran, eval_metric, nMin, nMax, algo, distance_t
                         np.median(sp.distance.squareform(cluster_dist_mat)))
 
         avr_of_results.append(sum(cluster_results) / len(cluster_results))
-
-    ax = plt.axes()
-    x = range(nMin, nMax)
-    ax.plot(x, avr_of_results)
-    plt.xticks(range(nMin, nMax + 1))
-    ax.xaxis.grid(True)
-    plt.show()
+    plot_eval("average_dissimilarity", gran, algo,
+              distance_type, method, nMin, nMax, avr_of_results)
 
 
 def silhouette(gran, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
     dist_mat = _get_dist_mat(gran, metric, distance_type)
     results = []
+    subsets_per_cluster_means = []
     for n in range(nMin, nMax):
         labels = _cluster_lables(dist_mat, n, algo, method)
+        subsets_per_cluster = list(Counter(labels).values())
+        subsets_per_cluster_means.append(np.mean(subsets_per_cluster))
         silhouette_result = silhouette_score(
             X=dist_mat, labels=labels, metric="precomputed", sample_size=None)
         results.append(silhouette_result)
 
-    ax = plt.axes()
-    x = range(nMin, nMax)
-    ax.plot(x, results)
-    plt.xticks(range(nMin, nMax + 1))
-    ax.xaxis.grid(True)
-    plt.show()
+    plot_eval("silhouette", gran, algo, distance_type,
+              method, nMin, nMax, results, subsets_per_cluster_means)
 
 
 def dunn(gran, nMin, nMax, algo, distance_type, method='ward', metric='norm'):
     dist_mat = _get_dist_mat(gran, metric, distance_type)
     results = []
+    subsets_per_cluster_means = []
+
     for n in range(nMin, nMax):
+        print(n)
+        #start = time.time()
 
         labels = _cluster_lables(dist_mat, n, algo, method)
+
+        subsets_per_cluster = list(Counter(labels).values())
+        subsets_per_cluster_means.append(np.mean(subsets_per_cluster))
+
+        labels_set = set(labels)
         inter_cluster_all = []
         intra_cluster_all = []
-        for i in set(labels):
+        for i in labels_set:
             # print(i)
             points_indices_i = [p for p, x in enumerate(labels) if x == i]
+
             if len(points_indices_i) > 1:
                 intra_cluster = np.mean(
                     sp.distance.squareform(dist_mat[points_indices_i][:, points_indices_i]))
                 intra_cluster_all.append(intra_cluster)
+            else:
+                intra_cluster_all.append(0)
 
-            for j in set(labels):
+            for j in labels_set:
                 if j != i:
                     points_indices_j = [
                         p for p, x in enumerate(labels) if x == j]
-                    inter_cluster = np.mean(dist_mat[points_indices_i][:,
-                                                                       points_indices_j])
+                    inter_cluster = np.mean(
+                        dist_mat[points_indices_i][:, points_indices_j])
                     inter_cluster_all.append(inter_cluster)
 
-        di = min(inter_cluster_all) / max(intra_cluster_all)
-
+        di = np.min(inter_cluster_all) / np.max(intra_cluster_all)
+        #print(time.time() - start)
         results.append(di)
 
-    ax = plt.axes()
-    x = range(nMin, nMax)
-    ax.plot(x, results)
-    plt.xticks(range(nMin, nMax + 1))
-    ax.xaxis.grid(True)
-    plt.show()
+    plot_eval("dunn", gran, algo, distance_type, method,
+              nMin, nMax, results, subsets_per_cluster_means)
+
 
 def _resample_clusters(clusters_tweets):
 
@@ -214,27 +267,25 @@ def perplexity(gran, nMin, nMax, algo, distance_type, method='ward', metric='nor
 
         results.append(_resample_clusters(clusters_tweets))
 
-    ax = plt.axes()
-    x = range(nMin, nMax)
-    ax.plot(x, results)
-    plt.xticks(range(nMin, nMax + 1))
-    ax.xaxis.grid(True)
-    plt.show()
+    plot_eval("perplexity", gran, algo, distance_type,
+              method, nMin, nMax, results)
 
-# 1699.0051465005286
+
 # average_median_dissimilarity(gran='cities', eval_metric='mean',
-#                              nMin=2, nMax=16, metric='norm', algo='kmed', distance_type='lang')
+#                              nMin=2, nMax=30, metric='norm', algo='kmed', distance_type='lang')
 
 
-silhouette(gran='cities', nMin=2, nMax=20, metric='norm',
-            algo='kmed', distance_type='lang')
+# silhouette(gran='cities', nMin=2, nMax=50, metric='norm',
+#            algo='kmed', distance_type='lang', method='ward')
 
 
-# dunn(gran='cities', nMin=2, nMax=50, metric='norm',
-#      algo='kmed', distance_type='lang')
+dunn(gran='cities', nMin=2, nMax=50, metric='norm',
+     algo='kmed', distance_type='lang', method='ward')
 
-#perplexity(gran='cities', nMin=2, nMax=20, metric='norm',
+# perplexity(gran='cities', nMin=2, nMax=20, metric='norm',
 #           algo='kmed', distance_type='lang')
+
+
 # from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 # from scipy.stats import entropy
 # import pickle

@@ -8,6 +8,8 @@ from scipy.spatial import distance
 from sklearn.metrics.pairwise import manhattan_distances
 from sklearn.feature_extraction.text import TfidfVectorizer
 import shutil
+from nltk import everygrams
+from hashlib import sha256
 
 
 #-- Helper functions --#
@@ -55,11 +57,16 @@ def _get_word_vec(sample):
     """ Generates a directory of word occurrences for subsets in a given sample """
     word_vec = {}
     for tweet in sample:
-        for word in tweet.split():
-            if word not in word_vec:
-                word_vec[word] = 1
+        grams = everygrams(tweet.split(), max_len=3)
+        hash_grams = [str(int(sha256(
+            "".join(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
+
+        for gram in hash_grams:
+            # for word in tweet.split():
+            if gram not in word_vec:
+                word_vec[gram] = 1
             else:
-                word_vec[word] += 1
+                word_vec[gram] += 1
     return word_vec
 
 
@@ -400,3 +407,17 @@ def norm_mat(gran):
 
     file_path = os.path.abspath(output_path)
     print("The combination distance matrix is stored in ", file_path)
+
+
+from nltk import everygrams
+from hashlib import sha256
+
+test_str = "hi there maaan hi there man"
+
+
+grams = list(everygrams(test_str.split(), max_len=3))
+hash_grams = [str(int(sha256(
+    "".join(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
+print(hash_grams)
+for gram in hash_grams:
+    print(gram)
