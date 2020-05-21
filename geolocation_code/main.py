@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 #--- Custom modules ---#
 from build_data import build_data
-from langdistance02 import resample, burrows_delta, JSD  # , TF_IDF, norm_mat
+from langdistance import resample, burrows_delta, JSD, TF_IDF, norm_mat
 from plot_mat import plot_mat
 from clustering import clustering
 
@@ -60,10 +60,10 @@ def create_mats(gran):
     dataset = _get_dataset(gran)
     print(len(dataset))
     resample(gran, dataset)
-    # burrows_delta(gran)
-    # JSD(gran)
-    # TF_IDF(gran)
-    # norm_mat(gran)
+    burrows_delta(gran)
+    JSD(gran)
+    TF_IDF(gran)
+    norm_mat(gran)
 
 
 if __name__ == "__main__":
@@ -72,14 +72,13 @@ if __name__ == "__main__":
     # Recommneded maxsubset for gran='states' to be >1000000 for better representation
     # Recommneded minsubset for gran='cities' to be >5000 since less will create very few common word types accros subsets
 
-    # build_data(raw_data_path=RAW_PATH, gran="states",
-               # minsubset=5000, maxsubset=2000000)
+    build_data(raw_data_path=RAW_PATH, gran="cities",
+               minsubset=6500, maxsubset=100000)
 
-    # plot_subset_freq('states')
-
+    plot_subset_freq('cities')
+    # dataset = _get_dataset('cities')
+    #print(sum([len(dataset[subset]) for subset in dataset]))
     create_mats('cities')
-
-    #print (sum([len(dataset[subset]) for subset in dataset]))
 
     #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 

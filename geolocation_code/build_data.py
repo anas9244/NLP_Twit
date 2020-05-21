@@ -83,7 +83,7 @@ def _clean_text(tweet):
     if 'norm_tweet' in tweet:
         return tweet['norm_tweet']
     else:
-        
+
         text = ""
         if tweet['truncated']:
             if "extended_tweet" in tweet:
@@ -95,15 +95,16 @@ def _clean_text(tweet):
 
         clean_text = _clean_string(text)
 
-        #if len(clean_text) > 5:
+        # if len(clean_text) > 5:
         return clean_text
 
-        #else:
+        # else:
         #    return False
 
 
 def _get_center(coords):
     """ Gets geographic center given a tweet's bounding_box """
+
     south = coords[0][1]
     north = coords[1][1]
     west = coords[0][0]
@@ -185,10 +186,11 @@ def build_data(raw_data_path, gran, minsubset, maxsubset):
     if gran not in {"states", "cities"}:
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
-    for index, file in enumerate(_get_files(raw_data_path)):
+    for file_index, file in enumerate(_get_files(raw_data_path)):
         start_time = time.time()
+        print(file)
         opened_file = open(file, 'r', encoding="utf-8")
-        for line in opened_file:
+        for index, line in enumerate(opened_file):
             tweet = json.loads(line)
 
             if tweet['place'] is not None:
@@ -196,6 +198,7 @@ def build_data(raw_data_path, gran, minsubset, maxsubset):
                     if gran == "cities":
                         if tweet['place']['place_type'] == 'city':
                             key = tweet['place']['full_name']
+
                             if key not in subset_coords:
                                 coords = tweet['place']['bounding_box']['coordinates'][0]
                                 subset_coords[key] = _get_center(coords)
@@ -230,7 +233,7 @@ def build_data(raw_data_path, gran, minsubset, maxsubset):
 
         time_elapsed = time.time() - start_time
         print("Estimated time left: ", int(
-            time_elapsed * (number_files - (index + 1))), " sec.")
+            time_elapsed * (number_files - (file_index + 1))), " sec.")
 
     blacklist = []
 

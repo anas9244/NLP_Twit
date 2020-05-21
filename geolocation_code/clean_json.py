@@ -10,6 +10,10 @@ from tweets_infos import _tweet_data
 
 RAW_PATH = "/media/data/json_combined/"
 
+start = 391
+
+tweet_count = 0
+
 
 def _set_file(file_index):
     #gran_path = "data/" + gran
@@ -24,25 +28,27 @@ def _set_file(file_index):
 
 for index, file in enumerate(d._get_files(RAW_PATH)):
     file_index = index
-    if index == 1:
-        continue
-    print(file)
-    file_out = _set_file(file_index)
+    if index >= start:
+        print(tweet_count)
 
-    opened_file = open(file, 'r', encoding="utf-8")
-    for index, line in enumerate(opened_file):
-        tweet = json.loads(line)
-        try:
+        print(file)
+        file_out = _set_file(file_index)
 
-            if (tweet['source'] in d.source_whitelist) and tweet['place']['country_code'] == 'US' and tweet['place']['place_type'] in ('city', 'admin'):
+        opened_file = open(file, 'r', encoding="utf-8")
+        for index, line in enumerate(opened_file):
+            tweet = json.loads(line)
+            try:
 
-                norm_tweet = d._clean_text(tweet)
+                if (tweet['source'] in d.source_whitelist) and tweet['place']['country_code'] == 'US' and tweet['place']['place_type'] in ('city', 'admin'):
 
-                if norm_tweet:
+                    norm_tweet = d._clean_text(tweet)
 
-                    clean_tweet = _tweet_data(tweet, norm_tweet)
-                    json.dump(clean_tweet, file_out, ensure_ascii=False)
-                    file_out.write("\n")
-        except Exception as e:
-            print(e)
-            print(line.encode())
+                    if norm_tweet:
+                        tweet_count += 1
+
+                        clean_tweet = _tweet_data(tweet, norm_tweet)
+                        json.dump(clean_tweet, file_out, ensure_ascii=False)
+                        file_out.write("\n")
+            except Exception as e:
+                print(e)
+                print(line.encode())
