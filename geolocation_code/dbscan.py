@@ -11,6 +11,8 @@ import plotly.express as px
 from collections import Counter
 import matplotlib
 from sklearn.metrics import silhouette_score
+from dunn import dunn
+import time
 matplotlib.use('GTK3Agg')
 
 
@@ -29,51 +31,54 @@ def _get_dist_mat(gran, metric, distance_type):
     return dist_mat
 
 
-def dunn(gran, labels, dist_mat):
+def mydunn(labels, dist_mat, diameter_method='mean',
+           cdist_method='min'):
 
     inter_cluster_all = []
-    intra_cluster_all = []
+    clusters = np.unique(labels)
+    n_clusters = len(clusters)
+    diameters = np.zeros(n_clusters)
 
-    lables_filtered = [x for x in labels if x != -1]
-    lables_filtered_set = set(lables_filtered)
-    if len(lables_filtered_set) == 1:
-        return 0
-    else:
-        noise_points = [p for p, x in enumerate(labels) if x == -1]
-        dist_range = [i for i in range(len(dist_mat))]
-        dist_range_filtered = [x for x in dist_range if x not in noise_points]
-        dist_mat = dist_mat[dist_range_filtered][:, dist_range_filtered]
+    if diameter_method == 'mean':
+        for i in range(0, len(labels) - 1):
+            for ii in range(i + 1, len(labels)):
+                if labels[i] == labels[ii]:
+                    diameters[labels[i]] += dist_mat[i, ii]
+        for i in range(len(diameters)):
+            diameters[i] /= sum(labels == i)
 
-        for i in lables_filtered_set:
-            # print(i)
-            points_indices_i = [p for p, x in enumerate(
-                lables_filtered) if x == i]
+    elif diameter_method == 'max':
+        for i in range(0, len(labels) - 1):
+            for ii in range(i + 1, len(labels)):
+                if labels[i] == labels[ii] and dist_mat[i, ii] > diameters[
+                        labels[i]]:
+                    diameters[labels[i]] = dist_mat[i, ii]
 
-            if len(points_indices_i) > 1:
-                intra_cluster = np.mean(
-                    sp.distance.squareform(dist_mat[points_indices_i][:, points_indices_i]))
-                intra_cluster_all.append(intra_cluster)
-            else:
-                intra_cluster_all.append(0)
+    for i in np.arange(0, len(clusters)):
+        points_indices_i = [p for p, x in enumerate(
+            labels) if x == i]
+        for j in np.arange(i, len(clusters)):
+            # for i in clusters:
 
-            for j in lables_filtered_set:
-                if j != i:
-                    points_indices_j = [
-                        p for p, x in enumerate(lables_filtered) if x == j]
+            #     for j in clusters:
+            if j != i:
+                points_indices_j = [
+                    p for p, x in enumerate(labels) if x == j]
+                if cdist_method == 'mean':
                     inter_cluster = np.mean(
                         dist_mat[points_indices_i][:, points_indices_j])
-                    inter_cluster_all.append(inter_cluster)
+                elif cdist_method == 'min':
+                    inter_cluster = np.min(
+                        dist_mat[points_indices_i][:, points_indices_j])
+                inter_cluster_all.append(inter_cluster)
 
-        # if len(inter_cluster_all) == 0:
-        #     return 0
-        # else:
-
-        di = np.min(inter_cluster_all) / np.max(intra_cluster_all)
-        # print(time.time() - start)
-        return (di)
+    di = np.min(inter_cluster_all) / np.max(diameters)
+    # print(time.time() - start)
+    return (di)
 
 
 dist_mat = _get_dist_mat('cities', 'norm', 'lang')
+
 
 # print(len(dist_mat))
 
@@ -86,13 +91,6 @@ dist_mat = _get_dist_mat('cities', 'norm', 'lang')
 #     title="Language distance distribution of " + str(len(dist_mat)) + " US cities")
 
 # plotly.offline.plot(fig, filename='lang_dist_box.html')
-# for i in dist_list:
-#     if i == 0:
-#         print("yes")
-
-# ax = sns.boxplot(x=dist_list)
-# plt.savefig('dist_boxplot.png', dpi=300, bbox_inches='tight')
-# plt.show()
 
 
 # # #####################################
@@ -126,11 +124,13 @@ mean_cluster_size = np.zeros((len(eps_range), len(min_p_range)))
 
 
 for i, eps in enumerate(eps_range):
+
+    start = time.time()
     for j, min_p in enumerate(min_p_range):
         clustering = DBSCAN(eps=eps, min_samples=min_p,
                             metric='precomputed').fit_predict(dist_mat)
         # print(set(clustering))
-        cluster_filter = [i for i in clustering if i != -1]
+        cluster_filter = np.array([i for i in clustering if i != -1])
         noise_ratio = np.count_nonzero(clustering == -1) / len(clustering)
         noise_mat[i, j] = noise_ratio
 
@@ -147,9 +147,6 @@ for i, eps in enumerate(eps_range):
 
         else:
 
-            di = dunn(gran='cities', labels=clustering, dist_mat=dist_mat)
-            result_mat[i, j] = di
-
             if len(dist_mat) > len(set(cluster_filter)) > 1:
                 noise_points = [p for p, x in enumerate(clustering) if x == -1]
                 dist_range = [i for i in range(len(dist_mat))]
@@ -161,10 +158,19 @@ for i, eps in enumerate(eps_range):
                 silhouette_result = silhouette_score(
                     X=dist_mat_filtered, labels=cluster_filter, metric="precomputed", sample_size=None)
                 silhouette_mat[i, j] = silhouette_result
+                di = mydunn(labels=cluster_filter, dist_mat=dist_mat_filtered)
+
+                # di = dunn(labels=cluster_filter, distances=dist_mat_filtered,
+                #           diameter_method='mean_cluster', cdist_method="nearest")
+
+                result_mat[i, j] = di
+
             else:
                 silhouette_mat[i, j] = -1
+                result_mat[i, j] = 0
 
     print(i)
+    print(time.time() - start)
 
 
 def format_coord(x, y):
