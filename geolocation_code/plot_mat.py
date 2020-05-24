@@ -125,7 +125,7 @@ def plot_mat(gran, metric, sort, show_lables, method='ward'):
         raise ValueError(
             "'" + sort + "'" + " is invalid. Possible values are ('alpha', 'geo', 'lang')")
 
-    gran_path = "data_test/" + gran
+    gran_path = "data/" + gran
 
     # if not os.path.exists(gran_path + "/dist_mats/"):
     #     raise Exception(
@@ -140,8 +140,6 @@ def plot_mat(gran, metric, sort, show_lables, method='ward'):
     dist_mat_file = open(gran_path + "/dist_mats/" +
                          metric + "_dist_mat.pickle", "rb")
     dist_mat = pickle.load(dist_mat_file)
-
-    print(dist_mat.mean())
 
     if sort == 'alpha':
         sorted_labels, sorted_mat = _alpha_sort(labels, dist_mat)

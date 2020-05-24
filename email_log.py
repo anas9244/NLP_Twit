@@ -54,16 +54,18 @@ import smtplib
 import string
 import time
 
-path="nohup.out"
+path = "nohup.out"
+
+
 def follow(thefile):
-    thefile.seek(0, 2)
-    while True:
-        line = thefile.readline()
-        if not line:
-            time.sleep(0.1)
-            continue
-        else:
-            return line
+  thefile.seek(0, 2)
+  while True:
+    line = thefile.readline()
+    if not line:
+      time.sleep(0.1)
+      continue
+    else:
+      return line
 
 
 logfile = open(path, "r", encoding="utf-8")
@@ -75,40 +77,40 @@ def sendemail(from_addr, to_addr_list,
               subject, message,
               login, password,
               smtpserver='smtp.gmail.com:587'):
-    header = 'From: %s\n' % from_addr
-    header += 'To: %s\n' % ','.join(to_addr_list)
-    header += 'Subject: %s\n\n' % subject
-    message = header + message
+  header = 'From: %s\n' % from_addr
+  header += 'To: %s\n' % ','.join(to_addr_list)
+  header += 'Subject: %s\n\n' % subject
+  message = header + message
 
-    server = smtplib.SMTP(smtpserver)
-    server.starttls()
-    server.login(login, password)
-    problems = server.sendmail(from_addr, to_addr_list, message)
-    server.quit()
-    return problems
+  server = smtplib.SMTP(smtpserver)
+  server.starttls()
+  server.login(login, password)
+  problems = server.sendmail(from_addr, to_addr_list, message)
+  server.quit()
+  return problems
 
 
 change_date = os.stat(path)[8]
 while True:
-    #change_date = os.stat(logfile)[8]
+  #change_date = os.stat(logfile)[8]
 
-    if change_date != os.stat(path)[8]:
-        print("changed, sent email")
+  if change_date != os.stat(path)[8]:
+    print("changed, sent email")
 
-        change_date = os.stat(path)[8]
-        with open(path) as hupfile:
-            content = hupfile.read().replace('\n', ' ')
+    change_date = os.stat(path)[8]
+    with open(path) as hupfile:
+      content = hupfile.read().replace('\n', ' ')
 
-    # if error:
+  # if error:
 
-        sendemail(from_addr='anasnayef1@gmail.com',
-                  to_addr_list=['anas.alnayef@uni-weimar.de'],
-                  subject='crawler update',
-                  message=content,
-                  login='anasnayef1@gmail.com',
-                  password='Yeje_9244')
-        with open("log.txt", "w") as file:
-            file.truncate(0)
+    sendemail(from_addr='anasnayef1@gmail.com',
+              to_addr_list=['anas.alnayef@uni-weimar.de'],
+              subject='crawler update',
+              message=content,
+              login='anasnayef1@gmail.com',
+              password='Yeje_9244')
+    with open("log.txt", "w") as file:
+      file.truncate(0)
 
-        #error = follow(logfile)
-    time.sleep(10)
+    #error = follow(logfile)
+  time.sleep(10)

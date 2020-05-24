@@ -82,6 +82,6 @@ if __name__ == "__main__":
 
     #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 
-    # plot_mat(gran='cities', metric='burrows_delta', sort='lang',
+    # plot_mat(gran='cities', metric='jsd', sort='alpha',
     #          show_lables=True, method='ward')
     # #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")

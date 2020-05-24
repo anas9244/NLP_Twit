@@ -6,7 +6,7 @@ import os
 import time
 from scipy.spatial import distance
 from sklearn.metrics.pairwise import manhattan_distances
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 import shutil
 from nltk import everygrams
 from hashlib import sha256
@@ -59,14 +59,16 @@ def _get_word_vec(sample):
     for tweet in sample:
         #grams = everygrams(tweet.split(), max_len=3)
         # hash_grams = [str(int(sha256(
-           # "".join(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
-
-        for word in tweet.split():
+           # "".ajoin(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
+        char_tokens = [c for c in tweet if c != " "]
+        char_grams = everygrams(char_tokens, min_len=2, max_len=5)
+        for gram in char_grams:
             # for word in tweet.split():
-            if word not in word_vec:
-                word_vec[word] = 1
+            joined_gram = "".join(gram)
+            if joined_gram not in word_vec:
+                word_vec[joined_gram] = 1
             else:
-                word_vec[word] += 1
+                word_vec[joined_gram] += 1
     return word_vec
 
 
@@ -331,14 +333,25 @@ def TF_IDF(gran):
             start_time = time.time()
 
             subsets_words = _getResamplData(file)
-            corpus = []
-            for subset in subsets_words:
-                sub_corpus = " ".join(
-                    [(word + ' ') * subsets_words[subset][word] for word in subsets_words[subset]])
-                corpus.append(sub_corpus)
-            vectorizer = TfidfVectorizer()
-            X = vectorizer.fit_transform(corpus)
-            tf_idf_dist = manhattan_distances(X)
+            all_types = {
+                _type for subset in subsets_words for _type in subsets_words[subset]}
+            #corpus = []
+            # for subset in subsets_words:
+            #     sub_corpus = " ".join(
+            #         [(word + ' ') * subsets_words[subset][word] for word in subsets_words[subset]])
+            #     corpus.append(sub_corpus)
+            count_mat = np.zeros((len(subsets_words), len(all_types)))
+            for i, subset in enumerate(subsets_words):
+
+                count_mat[i] = [subsets_words[subset][c]
+                                if c in subsets_words[subset] else 0 for c in all_types]
+                print(len(count_mat[i]))
+            print(count_mat.shape)
+            vec_tf = TfidfTransformer(sublinear_tf=True)
+            X_tf = vec_tf.fit_transform(count_mat)
+            # vectorizer = TfidfVectorizer()
+            # X = vectorizer.fit_transform(corpus)
+            tf_idf_dist = manhattan_distances(X_tf)
 
             iter_results.append(tf_idf_dist)
 
