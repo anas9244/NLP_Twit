@@ -1,19 +1,12 @@
 import pickle
 from sklearn.cluster import DBSCAN
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 from plotly.subplots import make_subplots
-import scipy.spatial as sp
 import plotly.graph_objects as go
 import plotly
-import plotly.express as px
 from collections import Counter
-import matplotlib
 from sklearn.metrics import silhouette_score
-from dunn import dunn
 import time
-matplotlib.use('GTK3Agg')
 
 
 def _get_dist_mat(gran, metric, distance_type):
@@ -31,10 +24,21 @@ def _get_dist_mat(gran, metric, distance_type):
     return dist_mat
 
 
-def mydunn(labels, dist_mat, diameter_method='mean',
-           cdist_method='min'):
+def _filter_noise(lables, dist_mat):
+    cluster_filtered = np.array([i for i in lables if i != -1])
+    noise_points = [p for p, x in enumerate(lables) if x == -1]
+    dist_range = [i for i in range(len(dist_mat))]
+    dist_range_filtered = [
+        x for x in dist_range if x not in noise_points]
+    dist_mat_filtered = dist_mat[dist_range_filtered][:,
+                                                      dist_range_filtered]
 
-    inter_cluster_all = []
+    return cluster_filtered, dist_mat_filtered
+
+
+def mydunn(labels, dist_mat, diameter_method='mean',
+           cdist_method='mean'):
+
     clusters = np.unique(labels)
     n_clusters = len(clusters)
     diameters = np.zeros(n_clusters)
@@ -54,30 +58,40 @@ def mydunn(labels, dist_mat, diameter_method='mean',
                         labels[i]]:
                     diameters[labels[i]] = dist_mat[i, ii]
 
-    for i in np.arange(0, len(clusters)):
-        points_indices_i = [p for p, x in enumerate(
-            labels) if x == i]
-        for j in np.arange(i, len(clusters)):
-            # for i in clusters:
+    if cdist_method == "mean":
+        cluster_distances = np.zeros((n_clusters, n_clusters))
+        counts = np.zeros((n_clusters, n_clusters))
+        for i in np.arange(0, len(labels) - 1):
+            for ii in np.arange(i, len(labels)):
+                if labels[i] != labels[ii]:
+                    cluster_distances[labels[i], labels[ii]] += dist_mat[i, ii]
+                    cluster_distances[labels[ii], labels[i]
+                                      ] += dist_mat[i, ii]
+                    counts[labels[i], labels[ii]] += 1
+                    counts[labels[ii], labels[i]] += 1
 
-            #     for j in clusters:
-            if j != i:
-                points_indices_j = [
-                    p for p, x in enumerate(labels) if x == j]
-                if cdist_method == 'mean':
-                    inter_cluster = np.mean(
-                        dist_mat[points_indices_i][:, points_indices_j])
-                elif cdist_method == 'min':
-                    inter_cluster = np.min(
-                        dist_mat[points_indices_i][:, points_indices_j])
-                inter_cluster_all.append(inter_cluster)
+        for i in np.arange(0, len(cluster_distances)):
+            for ii in np.arange(i, len(cluster_distances)):
+                if i != ii:
+                    cluster_distances[i, ii] /= counts[i, ii]
+                    cluster_distances[ii, i] /= counts[ii, i]
 
-    di = np.min(inter_cluster_all) / np.max(diameters)
-    # print(time.time() - start)
+    elif cdist_method == "min":
+        cluster_distances = np.full(
+            (n_clusters, n_clusters), np.inf)
+        np.fill_diagonal(cluster_distances, 0)
+        for i in np.arange(0, len(labels) - 1):
+            for ii in np.arange(i, len(labels)):
+                if labels[i] != labels[ii] and dist_mat[i, ii] < cluster_distances[labels[i], labels[ii]]:
+                    cluster_distances[labels[i], labels[ii]] = cluster_distances[
+                        labels[ii], labels[i]] = dist_mat[i, ii]
+
+    # if len(cluster_distances[cluster_distances.nonzero()]) == 0:
+    #     return 0
+    # else:
+    di = np.min(
+        cluster_distances[cluster_distances.nonzero()]) / np.max(diameters)
     return (di)
-
-
-dist_mat = _get_dist_mat('cities', 'norm', 'lang')
 
 
 # print(len(dist_mat))
@@ -93,146 +107,103 @@ dist_mat = _get_dist_mat('cities', 'norm', 'lang')
 # plotly.offline.plot(fig, filename='lang_dist_box.html')
 
 
-# # #####################################
-# # inside box old
-# # eps_min = 0.736
-# # eps_max = 0.83
-
-# # inside box
-# eps_min = 0.757
-# eps_max = 0.868
-
-# # # inside whiskers old
-# # eps_min = 0.6
-# #eps_max = 0.9
-
-# inside whiskers
-eps_min = 0.624
-eps_max = 1.035
+box = (0.757, 0.868)
+whiskers = (0.624, 1.035)
 
 
-eps_range = [round(i, 3) for i in np.arange(eps_min, eps_max, 0.005)]
-print(len(eps_range))
-min_p_range = [i for i in np.arange(1, 110)]
+def dbscan_eval(gran, metric, distance_type, eps_inside):
 
-result_mat = np.zeros((len(eps_range), len(min_p_range)))
-silhouette_mat = np.zeros((len(eps_range), len(min_p_range)))
+    dist_mat = _get_dist_mat('cities', 'norm', 'lang')
 
-size_mat = np.zeros((len(eps_range), len(min_p_range)))
-noise_mat = np.zeros((len(eps_range), len(min_p_range)))
-mean_cluster_size = np.zeros((len(eps_range), len(min_p_range)))
+    if eps_inside == "whiskers":
+        eps_min = whiskers[0]
+        eps_max = whiskers[1]
+        min_p_max = 110
+    elif eps_inside == "box":
+        eps_min = box[0]
+        eps_max = box[1]
+        min_p_max = 50
 
+    eps_range = [round(i, 3) for i in np.arange(eps_min, eps_max, 0.005)]
+    print(len(eps_range))
+    min_p_range = [i for i in np.arange(1, min_p_max)]
 
-for i, eps in enumerate(eps_range):
+    result_mat = np.zeros((len(eps_range), len(min_p_range)))
+    silhouette_mat = np.zeros((len(eps_range), len(min_p_range)))
 
-    start = time.time()
-    for j, min_p in enumerate(min_p_range):
-        clustering = DBSCAN(eps=eps, min_samples=min_p,
-                            metric='precomputed').fit_predict(dist_mat)
-        # print(set(clustering))
-        cluster_filter = np.array([i for i in clustering if i != -1])
-        noise_ratio = np.count_nonzero(clustering == -1) / len(clustering)
-        noise_mat[i, j] = noise_ratio
+    size_mat = np.zeros((len(eps_range), len(min_p_range)))
+    noise_mat = np.zeros((len(eps_range), len(min_p_range)))
+    mean_cluster_size = np.zeros((len(eps_range), len(min_p_range)))
 
-        size_mat[i, j] = len(set(cluster_filter))
+    for i, eps in enumerate(eps_range):
 
-        subsets_per_cluster = list(Counter(cluster_filter).values())
+        start = time.time()
+        for j, min_p in enumerate(min_p_range):
+            clustering = DBSCAN(eps=eps, min_samples=min_p,
+                                metric='precomputed').fit_predict(dist_mat)
+            cluster_filtered, dist_mat_filtered = _filter_noise(
+                clustering, dist_mat)
+            noise_ratio = np.count_nonzero(clustering == -1) / len(clustering)
+            noise_mat[i, j] = noise_ratio
 
-        mean_cluster_size[i, j] = 0 if len(
-            subsets_per_cluster) == 0 else np.mean(subsets_per_cluster)
+            size_mat[i, j] = len(set(cluster_filtered))
 
-        if len(set(clustering)) == 1 and -1 in set(clustering):
-            result_mat[i, j] = 0
-            silhouette_mat[i, j] = -1
+            subsets_per_cluster = list(Counter(cluster_filtered).values())
 
-        else:
+            mean_cluster_size[i, j] = 0 if len(
+                subsets_per_cluster) == 0 else np.mean(subsets_per_cluster)
 
-            if len(dist_mat) > len(set(cluster_filter)) > 1:
-                noise_points = [p for p, x in enumerate(clustering) if x == -1]
-                dist_range = [i for i in range(len(dist_mat))]
-                dist_range_filtered = [
-                    x for x in dist_range if x not in noise_points]
-                dist_mat_filtered = dist_mat[dist_range_filtered][:,
-                                                                  dist_range_filtered]
-
-                silhouette_result = silhouette_score(
-                    X=dist_mat_filtered, labels=cluster_filter, metric="precomputed", sample_size=None)
-                silhouette_mat[i, j] = silhouette_result
-                di = mydunn(labels=cluster_filter, dist_mat=dist_mat_filtered)
-
-                # di = dunn(labels=cluster_filter, distances=dist_mat_filtered,
-                #           diameter_method='mean_cluster', cdist_method="nearest")
-
-                result_mat[i, j] = di
-
-            else:
-                silhouette_mat[i, j] = -1
+            if len(set(clustering)) == 1 and -1 in set(clustering):
                 result_mat[i, j] = 0
+                silhouette_mat[i, j] = -1
+            else:
+                if len(dist_mat) > len(set(cluster_filtered)) > 1:
+                    silhouette_result = silhouette_score(
+                        X=dist_mat_filtered, labels=cluster_filtered, metric="precomputed", sample_size=None)
+                    silhouette_mat[i, j] = silhouette_result
+                    di = mydunn(labels=cluster_filtered,
+                                dist_mat=dist_mat_filtered)
+                    result_mat[i, j] = di
 
-    print(i)
-    print(time.time() - start)
+                else:
+                    silhouette_mat[i, j] = -1
+                    result_mat[i, j] = 0
 
+        print(i)
+        print(time.time() - start)
 
-def format_coord(x, y):
+    fig = make_subplots(rows=3, cols=1, subplot_titles=[
+                        'Color: Dunn index', 'Color: Silhouette', 'Color: Number of generated clusters'], vertical_spacing=0.09)
 
-    return "min_p: {}, eps: {}, dunn: {}".format(min_p_range[int(x)], eps_range[int(y)], result_mat[int(y)][int(x)])
+    fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.86), xgap=0.3, ygap=0.3, colorscale="reds",
+                             z=result_mat, x=min_p_range, y=eps_range, customdata=np.dstack((size_mat, noise_mat, mean_cluster_size)), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>dunn: %{z:.4f} </b>'),
+                  row=1, col=1)
 
+    fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.50), xgap=0.3, ygap=0.3, colorscale="reds",
+                             z=silhouette_mat, x=min_p_range, y=eps_range, customdata=np.dstack((size_mat, noise_mat, mean_cluster_size)), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>Silhouette: %{z:.4f}</b>'),
+                  row=2, col=1)
 
-# fig = plt.figure()
-# ax = fig.add_subplot()
-x_range = range(1, len(min_p_range), 10)
-y_range = range(1, len(eps_range), 10)
+    fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.14), xgap=0.3, ygap=0.3, colorscale="reds",
+                             z=size_mat, x=min_p_range, y=eps_range, customdata=np.dstack((result_mat, noise_mat, mean_cluster_size)), hovertemplate='<b>n_cluster: %{z}</b><br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br>dunn: %{customdata[0]:.4f}'),
+                  row=3, col=1)
 
-# custome_data = np.dstack((list(x_range), list(y_range)))
-# fig.colorbar(cax)
+    fig.update_layout(
+        title="DBSCAN's dunn and silhouette index based on different epsilon+min_samples params combinations. Epsilon chosen from inside " + eps_inside + " \n")
 
-# ax.set_xticks(x_range)
-# ax.set_yticks(y_range)
+    fig.update_xaxes(title_text="min_samples", row=1, col=1)
+    fig.update_xaxes(title_text="min_samples", row=2, col=1)
+    fig.update_xaxes(title_text="min_samples", row=3, col=1)
 
+    fig.update_yaxes(title_text="eps", row=1, col=1)
+    fig.update_yaxes(title_text="eps", row=2, col=1)
+    fig.update_yaxes(title_text="eps", row=3, col=1)
 
-# ax.set_xticklabels([min_p_range[i] for i in x_range])
-# ax.set_yticklabels([eps_range[i] for i in y_range])
-
-# ax.format_coord = format_coord
-# plt.savefig('dbscan_dunn2.png', dpi=300, bbox_inches='tight')
-# pickle.dump(ax, open('dbscan_dunn2.pickle', 'w'))
-
-
-fig = make_subplots(rows=3, cols=1, subplot_titles=[
-                    'Color: Dunn index', 'Color: Silhouette', 'Color: Number of generated clusters'], vertical_spacing=0.09)
-
-
-# fig = go.Figure(data=go.Heatmap(
-#     z=result_mat, x=min_p_range, y=eps_range, customdata=np.dstack((size_mat, noise_mat, mean_cluster_size)), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.3f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_p: %{x}<br>eps: %{y:.3f}<br><b>dunn: %{z:.3f} </b>'))
-#cbarlocs = [.85, .5, .15]
-fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.86), xgap=0.3, ygap=0.3, colorscale="reds",
-                         z=result_mat, x=min_p_range, y=eps_range, customdata=np.dstack((size_mat, noise_mat, mean_cluster_size)), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>dunn: %{z:.3f} </b>'),
-              row=1, col=1)
-
-
-fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.50), xgap=0.3, ygap=0.3, colorscale="reds",
-                         z=silhouette_mat, x=min_p_range, y=eps_range, customdata=np.dstack((size_mat, noise_mat, mean_cluster_size)), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>Silhouette: %{z:.3f}</b>'),
-              row=2, col=1)
-
-
-fig.add_trace(go.Heatmap(colorbar=dict(len=0.29, y=0.14), xgap=0.3, ygap=0.3, colorscale="reds",
-                         z=size_mat, x=min_p_range, y=eps_range, customdata=np.dstack((result_mat, noise_mat, mean_cluster_size)), hovertemplate='<b>n_cluster: %{z}</b><br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br>dunn: %{customdata[0]:.3f}'),
-              row=3, col=1)
+    fig.update_layout(
+        autosize=False,
+        width=1450,
+        height=1600,)
+    plotly.offline.plot(fig, filename="dbscan_eval_" + eps_inside + ".html")
 
 
-fig.update_layout(
-    title="DBSCAN's dunn and silhouette index based on different epsilon+min_samples params combinations. Epsilon chosen from inside whiskers \n")
-
-fig.update_xaxes(title_text="min_samples", row=1, col=1)
-fig.update_xaxes(title_text="min_samples", row=2, col=1)
-fig.update_xaxes(title_text="min_samples", row=3, col=1)
-
-fig.update_yaxes(title_text="eps", row=1, col=1)
-fig.update_yaxes(title_text="eps", row=2, col=1)
-fig.update_yaxes(title_text="eps", row=3, col=1)
-
-fig.update_layout(
-    autosize=False,
-    width=1450,
-    height=1600,)
-plotly.offline.plot(fig, filename='dbscan_eval_whiskers.html')
+dbscan_eval(gran="cities", metric="norm", distance_type="lang",
+            eps_inside="whiskers")
