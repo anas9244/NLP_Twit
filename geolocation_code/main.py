@@ -66,22 +66,24 @@ def create_mats(gran):
     norm_mat(gran)
 
 
+# n_features= 1652146
+# vec time =12
 if __name__ == "__main__":
 
     # Accepted values for gran: 'states', 'cities'
     # Recommneded maxsubset for gran='states' to be >1000000 for better representation
     # Recommneded minsubset for gran='cities' to be >5000 since less will create very few common word types accros subsets
 
-    build_data(raw_data_path=RAW_PATH, gran="cities",
-               minsubset=6500, maxsubset=100000)
+    # build_data(raw_data_path=RAW_PATH, gran="cities",
+              # minsubset=6500, maxsubset=100000)
 
-    plot_subset_freq('cities')
+    # plot_subset_freq('cities')
     # dataset = _get_dataset('cities')
     #print(sum([len(dataset[subset]) for subset in dataset]))
     create_mats('cities')
 
     #----------- Uncomment the following block and comment out create_mats() and Build_data() if you want to repeat running for different args --------------#
 
-    # plot_mat(gran='cities', metric='jsd', sort='alpha',
-    #          show_lables=True, method='ward')
+    # plot_mat(gran='cities', metric='tfidf', sort='alpha',
+    # show_lables=True, method='ward')
     # #clustering(gran='cities', metric='norm', n_clusters=8, algo='hrchy', method="complete")

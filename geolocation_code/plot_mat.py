@@ -60,13 +60,13 @@ def _hrchy_sort(gran, sort_by, dist_mat, lables, method, show_lables):
 
     for i in range(len(leaves)):
         for j in range(len(leaves)):
-            if i in target_ind:
-                sorted_mat[i][j] = 3
-            elif j in target_ind:
-                sorted_mat[i][j] = 3
-            else:
+            # if i in target_ind:
+            #     sorted_mat[i][j] = 3
+            # elif j in target_ind:
+            #     sorted_mat[i][j] = 3
+            # else:
 
-                sorted_mat[i][j] = dist_mat[leaves[i]][leaves[j]]
+            sorted_mat[i][j] = dist_mat[leaves[i]][leaves[j]]
     return sorted_lables, sorted_mat
 
 

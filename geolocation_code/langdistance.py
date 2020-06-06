@@ -1,4 +1,4 @@
-import numpy as np
+    import numpy as np
 import random
 import math
 import pickle
@@ -10,9 +10,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer, TfidfTransformer
 import shutil
 from nltk import everygrams
 from hashlib import sha256
+from sklearn.feature_extraction import DictVectorizer, FeatureHasher
+import scipy.sparse
+from sklearn.preprocessing import StandardScaler
+from numpy import save, load
 
 
 #-- Helper functions --#
+
+
 def _prepend(files, dir_path):
     """ Prepend the full directory path to files, so they can be used in open() """
     dir_path += '{0}'
@@ -44,6 +50,20 @@ def _get_delta(index, subsets_zscores):
     return deltas
 
 
+def _get_delta_opt(subseti_zscores, subsetii_zscores):
+    # """ Generates a list of burrows_deltas for a subset with the rest of the subsets """
+
+    # subset_i = list(subsets_zscores.keys())[i]
+    # subset_ii = list(subsets_zscores.keys())[ii]
+    delta = 0
+    for i in range(len(subseti_zscores)):
+        delta += math.fabs((subseti_zscores
+                            [i] - subsetii_zscores[i]))
+    delta /= len(subseti_zscores)
+
+    return delta
+
+
 def _getResamplData(pickle_file):
     """ Extracts sample of the dataset given a pickle file """
     resample_file = open(pickle_file, "rb")
@@ -53,22 +73,34 @@ def _getResamplData(pickle_file):
     return resample_data
 
 
-def _get_word_vec(sample):
+def _get_word_vec(sample, analyzer, ngram_range):  #
     """ Generates a directory of word occurrences for subsets in a given sample """
     word_vec = {}
     for tweet in sample:
         #grams = everygrams(tweet.split(), max_len=3)
         # hash_grams = [str(int(sha256(
-           # "".ajoin(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
-        char_tokens = [c for c in tweet if c != " "]
-        char_grams = everygrams(char_tokens, min_len=2, max_len=5)
-        for gram in char_grams:
+        #   "".ajoin(gram).encode('utf-8')).hexdigest(), 16) % 10**8) for gram in grams]
+        tokens = [c for c in tweet] if analyzer == "char" else tweet.split(
+        ) if analyzer == "word" else "error"  # if c != " "
+        grams = everygrams(
+            tokens, min_len=ngram_range[0], max_len=ngram_range[1])
+        for gram in grams:
             # for word in tweet.split():
-            joined_gram = "".join(gram)
+            joined_gram = "".join(gram)  # if analyzer == "word" else "".join(
+            # gram) if analyzer == "char" else gram if ngram_range == (1, 1) else "wtf"
+
             if joined_gram not in word_vec:
                 word_vec[joined_gram] = 1
             else:
                 word_vec[joined_gram] += 1
+
+    #     for word in tweet.split():
+
+    #         if word not in word_vec:
+    #             word_vec[word] = 1
+    #         else:
+
+    #             word_vec[word] += 1
     return word_vec
 
 
@@ -153,16 +185,20 @@ def resample(gran, dataset):
         #iter_sample = []
         subsets_words = {}
 
-        for subset in dataset:
+        for sub_i, subset in enumerate(dataset):
+            # print(sub_i)
 
             start_index = random.randint(0, len(dataset[subset]) - min_subset)
             end_index = start_index + min_subset
             sample = dataset[subset][start_index:end_index]
 
-            word_vec = _get_word_vec(sample)
+            word_vec = _get_word_vec(
+                sample=sample, analyzer="char", ngram_range=(3, 3))
+
             subsets_words[subset] = word_vec
 
         word_set = _get_word_set(subsets_words)
+
         if i == 1:
             print("Estimated word-types per iteration ca.: ",
                   round(len(word_set), -(len(str(len(word_set))) - 1)))
@@ -175,7 +211,7 @@ def resample(gran, dataset):
         print("")
 
         save_resampling_iter = open(
-            "data/" + gran + "/resampling/iter_" + str(i) + ".pickle", "wb")
+            resample_path + "/iter_" + str(i) + ".pickle", "wb")
         pickle.dump(subsets_words, save_resampling_iter, -1)
 
 
@@ -192,8 +228,10 @@ def burrows_delta(gran):
         raise Exception(
             "No resampling data found! Please run resample() first.")
     else:
+
         print("Starting Burrows_delta...")
         iter_results = []
+        # , file in enumerate(_get_files(resample_path)):
         for res_index, file in enumerate(_get_files(resample_path)):
             start_time = time.time()
 
@@ -206,9 +244,10 @@ def burrows_delta(gran):
                 print("")
 
             for subset in subsets_words:
-                overall = sum(subsets_words[subset].values())
+                #overall = sum(subsets_words[subset].values())
                 for word in subsets_words[subset]:
-                    subsets_words[subset][word] /= overall
+                    subsets_words[subset][word] = math.log(
+                        subsets_words[subset][word]) + 1
 
             subsets_features = {}
             for word in list(word_set):
@@ -240,11 +279,23 @@ def burrows_delta(gran):
 
                     subsets_zscores[subset].append(
                         (word_subset_freq - word_mean) / word_stdev)
-
+            subsets_words = None
+            subsets_features = None
+            word_set = None
             result_mat = np.zeros((len(subsets_zscores), len(subsets_zscores)))
 
-            for i in range(len(result_mat)):
-                result_mat[i] = _get_delta(i, subsets_zscores)
+            for i in np.arange(0, len(result_mat)):
+                for ii in np.arange(i, len(result_mat)):
+                    if i != ii:
+                        key1 = list(subsets_zscores.keys())[i]
+                        key2 = list(subsets_zscores.keys())[ii]
+
+                        result_mat[i, ii] = _get_delta_opt(
+                            subsets_zscores[key1], subsets_zscores[key2])
+                        result_mat[ii, i] = result_mat[i, ii]
+            subsets_zscores = None
+            # for i in range(len(result_mat)):
+            #     result_mat[i] = _get_delta(i, subsets_zscores)
 
             iter_results.append(result_mat)
             time_elapsed = time.time() - start_time
@@ -263,6 +314,7 @@ def JSD(gran):
         raise ValueError(
             "'" + gran + "'" + " is invalid. Possible values are ('states' , 'cities')")
     resample_path = "data/" + gran + "/resampling"
+
     if not os.path.exists(resample_path):
         raise Exception(
             "No resampling data found! Please run resample() first.")
@@ -284,24 +336,37 @@ def JSD(gran):
                 print("")
 
             for subset in subsets_words:
-                overall = sum(subsets_words[subset].values())
+                #overall = sum(subsets_words[subset].values())
                 for word in subsets_words[subset]:
-                    subsets_words[subset][word] /= overall
+                    subsets_words[subset][word] = subsets_words[subset][word] = math.log(
+                        subsets_words[subset][word]) + 1
 
             subset_dist = {subset: [] for subset in subsets_words}
 
             for word in word_set:
                 for subset in subsets_words:
                     subset_dist[subset].append(subsets_words[subset][word])
+            subsets_words = None
 
-            result_mat = np.zeros((len(subsets_words), len(subsets_words)))
+            result_mat = np.zeros((len(subset_dist), len(subset_dist)))
 
-            for index, subset in enumerate(subset_dist):
-                subset_jsds = []
-                for other_subset in subset_dist:
-                    subset_jsds.append(distance.jensenshannon(
-                        subset_dist[subset], subset_dist[other_subset], 2.0))
-                result_mat[index] = subset_jsds
+            for i in np.arange(0, len(result_mat)):
+                for ii in np.arange(i, len(result_mat)):
+                    if i != ii:
+                        key1 = list(subset_dist.keys())[i]
+                        key2 = list(subset_dist.keys())[ii]
+
+                        result_mat[i, ii] = (distance.jensenshannon(
+                            subset_dist[key1], subset_dist[key2], 2.0))
+                        result_mat[ii, i] = result_mat[i, ii]
+            subset_dist = None
+            # for index, subset in enumerate(subset_dist):
+            #     subset_jsds = []
+            #     for other_subset in subset_dist:
+            #         subset_jsds.append(distance.jensenshannon(
+            #             subset_dist[subset], subset_dist[other_subset], 2.0))
+            #     result_mat[index] = subset_jsds
+            # subset_jsds = None
 
             iter_results.append(result_mat)
 
@@ -333,25 +398,49 @@ def TF_IDF(gran):
             start_time = time.time()
 
             subsets_words = _getResamplData(file)
-            all_types = {
-                _type for subset in subsets_words for _type in subsets_words[subset]}
+            # all_types = {
+            #     _type for subset in subsets_words for _type in subsets_words[subset]}
             #corpus = []
             # for subset in subsets_words:
             #     sub_corpus = " ".join(
             #         [(word + ' ') * subsets_words[subset][word] for word in subsets_words[subset]])
             #     corpus.append(sub_corpus)
-            count_mat = np.zeros((len(subsets_words), len(all_types)))
-            for i, subset in enumerate(subsets_words):
+            # count_mat = np.zeros((len(subsets_words), len(all_types)))
+            # for i, subset in enumerate(subsets_words):
 
-                count_mat[i] = [subsets_words[subset][c]
-                                if c in subsets_words[subset] else 0 for c in all_types]
-                print(len(count_mat[i]))
-            print(count_mat.shape)
-            vec_tf = TfidfTransformer(sublinear_tf=True)
-            X_tf = vec_tf.fit_transform(count_mat)
+            #     count_mat[i] = [subsets_words[subset][c]
+            #                     if c in subsets_words[subset] else 0 for c in all_types]
+            #     print(i)
+            subsets_words = [subsets_words[subset] for subset in subsets_words]
+            print("feature len calc...")
+            features = {feature for i in subsets_words for feature in i}
+            n_features = len(features)
+            features = None
+            print("finsihed feature len calc...")
+
+            print("starting vec")
+            #v = DictVectorizer()
+            v = FeatureHasher(n_features=n_features, alternate_sign=False)
+            X = v.fit_transform(subsets_words)
+            subsets_words = None
+
+            print(X.shape)
+            v = None
+            print(type(X))
+            print("finished dict vec")
+            # print(count_mat.shape)
+            vec_tf = TfidfTransformer(sublinear_tf=True, norm="l2")
+            X_tf = vec_tf.fit_transform(X)
+            print(type(X_tf))
+            print("finished tfidf vec")
+            vec_tf = None
+            X = None
+
             # vectorizer = TfidfVectorizer()
             # X = vectorizer.fit_transform(corpus)
             tf_idf_dist = manhattan_distances(X_tf)
+            print("finished manhat")
+            X_tf = None
 
             iter_results.append(tf_idf_dist)
 

@@ -202,7 +202,7 @@ def build_data(raw_data_path, gran, minsubset, maxsubset):
                             if key not in subset_coords:
                                 coords = tweet['place']['bounding_box']['coordinates'][0]
                                 subset_coords[key] = _get_center(coords)
-                                city_ids[key] = tweet['place']['full_name']
+                                city_ids[key] = tweet['place']['id']
 
                             if key not in dataset:
                                 dataset[key] = []

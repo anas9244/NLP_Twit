@@ -12,7 +12,7 @@ from statistics import mean, stdev
 import math
 from collections import Counter
 
-#-- Helper functions --#
+-- Helper functions --#
 
 
 def _prepend(files, dir_path):
@@ -250,35 +250,42 @@ def JSD(gran):
         _save_results(gran, iter_results, "jsd")
 
 
-# # iter_results.append(result_mat)
-# # time_elapsed = time.time() - start_time
-# # print("Finished " + str(res_index + 1) + "/" +
-# #       str(len(_get_files(resample_path))) + " iteration ")
-# # print("Estimated time left: ", int(time_elapsed *
-# #                                    (len(_get_files(resample_path)) - (res_index + 1))), " sec.")
-# # print("")
 
-# #_save_results(gran, iter_results, "burrows_delta")
-# corpus = ["what Hi there man", "what is goind on man", "fuck you what man"]
-# vec = CountVectorizer(preprocessor=lambda x: x)
-# vec_tf = TfidfTransformer(use_idf=False, norm="l1")
-# X = vec.fit_transform(corpus)
-# X_tf = vec_tf.fit_transform(X)
-# print(X.toarray())
+
+######## TEST ########################
+
+# iter_results.append(result_mat)
+# time_elapsed = time.time() - start_time
+# print("Finished " + str(res_index + 1) + "/" +
+#       str(len(_get_files(resample_path))) + " iteration ")
+# print("Estimated time left: ", int(time_elapsed *
+#                                    (len(_get_files(resample_path)) - (res_index + 1))), " sec.")
+# print("")
+
+#_save_results(gran, iter_results, "burrows_delta")
+corpus = ["what Hi there man", "what is goind on man", "fuck you what man"]
+vec = CountVectorizer(preprocessor=lambda x: x)
+vec_tf = TfidfTransformer(use_idf=False, norm="l1", sublinear_tf=True)
+X = vec.fit_transform(corpus)
+print(vec.get_feature_names())
+X_tf = vec_tf.fit_transform(X)
+print(X.toarray())
+print(X_tf.toarray())
 # X_arr = X.toarray()
 
 # print(np.mean(X_arr, 0))
 # print(X_arr[:, np.where(X_arr.all(axis=0))[0]])
-# #print(a[np.all(a < 10, axis=1)])
-# # for r in range(np.size(X_arr, 1)):
-# #     ax = [X_arr[x, r] for x in range(len(X_arr))]
-# #     if all(v != 0 for v in ax):
-# #         print(mean(ax))
-# #         ax_stdev = 0
-# #         for i in ax:
-# #             diff = i - mean(ax)
-# #             ax_stdev += diff * diff
-# #         ax_stdev /= len(X_arr) - 1
-# #         ax_stdev = math.sqrt(ax_stdev)
-# #         print(stdev(ax))
-# #         print(ax_stdev)
+#print(a[np.all(a < 10, axis=1)])
+# for r in range(np.size(X_arr, 1)):
+#     ax = [X_arr[x, r] for x in range(len(X_arr))]
+#     if all(v != 0 for v in ax):
+#         print(mean(ax))
+#         ax_stdev = 0
+#         for i in ax:
+#             diff = i - mean(ax)
+#             ax_stdev += diff * diff
+#         ax_stdev /= len(X_arr) - 1
+#         ax_stdev = math.sqrt(ax_stdev)
+#         print(stdev(ax))
+#         print(ax_stdev)
+#4472136
