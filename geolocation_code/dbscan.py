@@ -169,7 +169,7 @@ def box_plt(gran, metric, distance_type):
     fig.update_layout(
         title=distance_type + " distance distribution of " + str(len(dist_mat_uni)) + " US " + gran)
 
-    plotly.offline.plot(fig, filename="lang_dist_box.html")
+    plotly.offline.plot(fig, filename="lang_dist_box_geo.html")
 
 
 def dbscan_eval(gran, metric, distance_type):
@@ -182,9 +182,17 @@ def dbscan_eval(gran, metric, distance_type):
 
     dist_mat = [dist_mat_uni, dist_mat_gramword, dist_mat_char]
 
-    eps_range_uni = [round(i, 3) for i in np.arange(0.811, 1.108, 0.005)]
-    eps_range_gramword = [round(i, 3) for i in np.arange(0.865, 1.125, 0.005)]
-    eps_range_char = [round(i, 3) for i in np.arange(1.6, 5934, 300)]
+    if distance_type == "lang":
+
+        eps_range_uni = [round(i, 3) for i in np.arange(0.811, 1.108, 0.005)]
+        eps_range_gramword = [round(i, 3)
+                              for i in np.arange(0.865, 1.125, 0.005)]
+        eps_range_char = [round(i, 3) for i in np.arange(0.781, 1.114, 0.005)]
+    elif distance_type == "geo":
+        eps_range_uni = [round(i, 3) for i in np.arange(0.811, 1.108, 0.005)]
+        eps_range_gramword = [round(i, 3)
+                              for i in np.arange(0.865, 1.125, 0.005)]
+        eps_range_char = [round(i, 3) for i in np.arange(1.6, 5934, 100)]
 
     eps_range = [eps_range_uni, eps_range_gramword, eps_range_char]
 
@@ -267,7 +275,7 @@ def dbscan_eval(gran, metric, distance_type):
                 print(time.time() - start)
 
     fig = go.Figure(data=go.Heatmap(colorbar=dict(len=0.29, y=0.14), xgap=0.3, ygap=0.3, colorscale="reds",
-                                    z=result_mat[2], x=min_p_range, y=eps_range[2], customdata=np.dstack((size_mat[2], noise_mat[2], mean_cluster_size[2])), hovertemplate='n_cluster: %{customdata[0]}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>dunn: %{z:.4f}</b>'))
+                                    z=size_mat[2], x=min_p_range, y=eps_range[2], customdata=np.dstack((result_mat[2], noise_mat[2], mean_cluster_size[2])), hovertemplate='n_cluster: %{customdata[0]:.4f}<br>noise_ratio: %{customdata[1]:.2f}<br>average within cluster cities: %{customdata[2]:.0f}<br>min_samples: %{x}<br>eps: %{y:.3f}<br><b>n_cluster: %{z}</b>'))
 
     # fig = make_subplots(rows=3, cols=1, subplot_titles=[
     #                     'Color: Unigram', 'Color: 1-4 wordgram', 'Color: 3-3 char grams'], vertical_spacing=0.09)
@@ -317,10 +325,10 @@ def dbscan_eval(gran, metric, distance_type):
     #     autosize=False,
     #     width=1450,
     #     height=1600,)
-    plotly.offline.plot(fig, filename="dbscan_eval_geo.html")
+    plotly.offline.plot(fig, filename="dbscan_eval_n_cluster.html")
 
 
-# dbscan_eval(gran="cities", metric="norm", distance_type="geo")
+dbscan_eval(gran="cities", metric="norm", distance_type="lang")
 
 
-#box_plt("cities", "norm", "lang")
+#box_plt("cities", "norm", "geo")
